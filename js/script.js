@@ -162,30 +162,105 @@ function updateTotalAmount() {
 // Get current location
 function getCurrentLocation() {
     if (navigator.geolocation) {
+        // Show loading indicator
+        const locationBtn = document.getElementById('get-location');
+        const originalBtnText = locationBtn.innerHTML;
+        locationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
+        locationBtn.disabled = true;
+        
+        // Use more accurate geolocation options with higher accuracy
+        const options = {
+            enableHighAccuracy: true,  // Request the most accurate position
+            timeout: 15000,            // Longer timeout (15 seconds)
+            maximumAge: 0              // Don't use cached position
+        };
+        
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const latitude = position.coords.latitude;
-                const longitude = position.coords.longitude;
+                const { latitude, longitude, accuracy } = position.coords;
+                const locationInput = document.getElementById('location');
+                
+                console.log(`Location accuracy: ${accuracy} meters`);
                 
                 // Create Google Maps link
                 const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
                 
-                // Get address from coordinates using reverse geocoding
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+                // Use Google Maps Geocoding API for better accuracy
+                // Note: In a production environment, you should use your own API key
+                const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_API_KEY`;
+                
+                // For this example, we'll use a fallback to a free service
+                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
                     .then(response => response.json())
                     .then(data => {
-                        const address = data.display_name || 'Location found';
-                        locationInput.value = `${address} (${mapsLink})`;
+                        // Format the address in a more readable way
+                        let address = '';
+                        
+                        if (data) {
+                            const components = [];
+                            
+                            // Build address from most specific to least specific
+                            if (data.locality) components.push(data.locality);
+                            if (data.city) components.push(data.city);
+                            if (data.principalSubdivision) components.push(data.principalSubdivision);
+                            if (data.countryName) components.push(data.countryName);
+                            
+                            address = components.join(', ');
+                            
+                            // Add more detailed info if available
+                            if (data.plusCode) {
+                                address += ` (Plus Code: ${data.plusCode})`;
+                            }
+                        }
+                        
+                        // If we got a valid address, use it; otherwise use the maps link
+                        if (address) {
+                            locationInput.value = address;
+                        } else {
+                            locationInput.value = `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                        }
+                        
+                        // Add maps link for verification
+                        locationInput.value += ` [${mapsLink}]`;
+                        
+                        // Restore button state
+                        locationBtn.innerHTML = originalBtnText;
+                        locationBtn.disabled = false;
                     })
                     .catch(error => {
                         console.error('Error getting address:', error);
-                        locationInput.value = mapsLink;
+                        locationInput.value = `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} [${mapsLink}]`;
+                        
+                        // Restore button state
+                        locationBtn.innerHTML = originalBtnText;
+                        locationBtn.disabled = false;
                     });
             },
             (error) => {
                 console.error('Error getting location:', error);
-                alert('Unable to get your location. Please enter it manually.');
-            }
+                
+                // Provide more specific error messages
+                let errorMessage = 'Unable to get your location. Please enter it manually.';
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'Location access was denied. Please enable location services in your browser settings and try again.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'Location information is unavailable. Please check your device GPS settings and try again.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'Location request timed out. Please try again in an area with better GPS signal.';
+                        break;
+                }
+                
+                alert(errorMessage);
+                
+                // Restore button state
+                locationBtn.innerHTML = originalBtnText;
+                locationBtn.disabled = false;
+            },
+            options  // Use the high accuracy options
         );
     } else {
         alert('Geolocation is not supported by your browser. Please enter your location manually.');
