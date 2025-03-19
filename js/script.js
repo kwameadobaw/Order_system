@@ -164,6 +164,7 @@ function getCurrentLocation() {
     if (navigator.geolocation) {
         // Show loading indicator
         const locationBtn = document.getElementById('get-location');
+        const editBtn = document.getElementById('edit-location-btn');
         const originalBtnText = locationBtn.innerHTML;
         locationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
         locationBtn.disabled = true;
@@ -171,9 +172,12 @@ function getCurrentLocation() {
         // Use more accurate geolocation options with higher accuracy
         const options = {
             enableHighAccuracy: true,  // Request the most accurate position
-            timeout: 15000,            // Longer timeout (15 seconds)
+            timeout: 20000,            // Longer timeout (20 seconds)
             maximumAge: 0              // Don't use cached position
         };
+        
+        // Make location field readonly while getting location
+        document.getElementById('location').readOnly = true;
         
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -185,55 +189,93 @@ function getCurrentLocation() {
                 // Create Google Maps link
                 const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
                 
-                // Use Google Maps Geocoding API for better accuracy
-                // Note: In a production environment, you should use your own API key
-                const geocodingUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_API_KEY`;
-                
-                // For this example, we'll use a fallback to a free service
-                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
+                // Try OpenStreetMap first (often more accurate for street addresses)
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`)
                     .then(response => response.json())
                     .then(data => {
-                        // Format the address in a more readable way
                         let address = '';
                         
-                        if (data) {
-                            const components = [];
-                            
-                            // Build address from most specific to least specific
-                            if (data.locality) components.push(data.locality);
-                            if (data.city) components.push(data.city);
-                            if (data.principalSubdivision) components.push(data.principalSubdivision);
-                            if (data.countryName) components.push(data.countryName);
-                            
-                            address = components.join(', ');
-                            
-                            // Add more detailed info if available
-                            if (data.plusCode) {
-                                address += ` (Plus Code: ${data.plusCode})`;
-                            }
+                        if (data && data.display_name) {
+                            // OpenStreetMap provides a formatted display_name
+                            address = data.display_name;
+                        } else {
+                            throw new Error('No address found in OpenStreetMap response');
                         }
                         
-                        // If we got a valid address, use it; otherwise use the maps link
-                        if (address) {
-                            locationInput.value = address;
-                        } else {
-                            locationInput.value = `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-                        }
+                        // Set the location value
+                        locationInput.value = address;
                         
                         // Add maps link for verification
                         locationInput.value += ` [${mapsLink}]`;
+                        
+                        // Make location readonly and show edit button
+                        locationInput.readOnly = true;
+                        if (editBtn) {
+                            editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                            editBtn.style.display = 'inline-flex';
+                        }
                         
                         // Restore button state
                         locationBtn.innerHTML = originalBtnText;
                         locationBtn.disabled = false;
                     })
                     .catch(error => {
-                        console.error('Error getting address:', error);
-                        locationInput.value = `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} [${mapsLink}]`;
+                        console.error('Error getting address from OpenStreetMap:', error);
                         
-                        // Restore button state
-                        locationBtn.innerHTML = originalBtnText;
-                        locationBtn.disabled = false;
+                        // Fallback to BigDataCloud if OpenStreetMap fails
+                        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
+                            .then(response => response.json())
+                            .then(data => {
+                                let address = '';
+                                
+                                if (data) {
+                                    const components = [];
+                                    
+                                    // Build address from most specific to least specific
+                                    if (data.locality) components.push(data.locality);
+                                    if (data.city) components.push(data.city);
+                                    if (data.principalSubdivision) components.push(data.principalSubdivision);
+                                    if (data.countryName) components.push(data.countryName);
+                                    
+                                    address = components.join(', ');
+                                }
+                                
+                                // If we got a valid address, use it; otherwise use the coordinates
+                                if (address) {
+                                    locationInput.value = address;
+                                } else {
+                                    locationInput.value = `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                                }
+                                
+                                // Add maps link for verification
+                                locationInput.value += ` [${mapsLink}]`;
+                                
+                                // Make location readonly and show edit button
+                                locationInput.readOnly = true;
+                                if (editBtn) {
+                                    editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                                    editBtn.style.display = 'inline-flex';
+                                }
+                                
+                                // Restore button state
+                                locationBtn.innerHTML = originalBtnText;
+                                locationBtn.disabled = false;
+                            })
+                            .catch(finalError => {
+                                console.error('All geocoding services failed:', finalError);
+                                locationInput.value = `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} [${mapsLink}]`;
+                                
+                                // Make location readonly and show edit button
+                                locationInput.readOnly = true;
+                                if (editBtn) {
+                                    editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+                                    editBtn.style.display = 'inline-flex';
+                                }
+                                
+                                // Restore button state
+                                locationBtn.innerHTML = originalBtnText;
+                                locationBtn.disabled = false;
+                            });
                     });
             },
             (error) => {
@@ -256,16 +298,55 @@ function getCurrentLocation() {
                 
                 alert(errorMessage);
                 
+                // Make location editable on error
+                document.getElementById('location').readOnly = false;
+                
                 // Restore button state
                 locationBtn.innerHTML = originalBtnText;
                 locationBtn.disabled = false;
+                
+                // Show edit button
+                if (editBtn) {
+                    editBtn.style.display = 'inline-flex';
+                }
             },
             options  // Use the high accuracy options
         );
     } else {
         alert('Geolocation is not supported by your browser. Please enter your location manually.');
+        document.getElementById('location').readOnly = false;
     }
 }
+
+// Add this new function to toggle location field editability
+function toggleLocationEdit() {
+    const locationField = document.getElementById('location');
+    const editBtn = document.getElementById('edit-location-btn');
+    
+    if (locationField.readOnly) {
+        // Make editable
+        locationField.readOnly = false;
+        locationField.focus();
+        editBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+    } else {
+        // Make readonly
+        locationField.readOnly = true;
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+    }
+}
+
+// Add this to your DOMContentLoaded event listener
+document.addEventListener('DOMContentLoaded', () => {
+    // Existing code...
+    
+    // Make location field readonly by default
+    document.getElementById('location').readOnly = true;
+    
+    // Add event listener for edit location button
+    document.getElementById('edit-location-btn').addEventListener('click', toggleLocationEdit);
+    
+    // Rest of your existing code...
+});
 
 // Show order summary
 function showOrderSummary() {
@@ -407,6 +488,13 @@ function submitOrder() {
     totalInput.name = 'total_amount';
     totalInput.value = totalAmountElement.textContent;
     orderForm.appendChild(totalInput);
+
+    const honeypotInput = document.createElement('input');
+    honeypotInput.type = 'text';
+    honeypotInput.name = '_gotcha';
+    honeypotInput.value = '';
+    honeypotInput.style.display = 'none';
+    orderForm.appendChild(honeypotInput);
     
     // Submit form to Formspree
     const formData = new FormData(orderForm);

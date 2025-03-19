@@ -82,14 +82,16 @@
                 <div class="form-group">
                     <label for="location">Delivery Location</label>
                     <div class="location-input">
-                        <input type="text" id="location" name="location" required>
-                        <!-- Update the Get Current Location button -->
+                        <input type="text" id="location" name="location" required readonly>
+                        <button type="button" id="edit-location-btn" class="btn">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
                         <button type="button" id="get-location" class="btn">
                             <i class="fas fa-map-marker-alt"></i>
                             Get Current Location
                         </button>
                     </div>
-                    <small class="form-note">Note: If the generated location is incorrect, please enter your address manually.</small>
+                    <small class="form-note">Note: If the generated location is incorrect, click Edit to modify it.</small>
                 </div>
                 
                 <div class="form-group">
