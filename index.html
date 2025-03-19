@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="light-mode">
+    <!-- Update the theme toggle button -->
+    <div class="theme-toggle">
+        <button id="theme-toggle-btn">
+            <i class="fas fa-moon"></i>
+            <span>Dark Mode</span>
+        </button>
+    </div>
+
+    <div class="container">
+        <h1>Order Management System</h1>
+        
+        <form id="orderForm">
+            <input type="hidden" name="_subject" value="New Order Submission">
+            <!-- Remove the comment line that says "Add this hidden field" -->
+            
+            <div class="form-section">
+                <h2>Customer Information</h2>
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Contact Number</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2>Order Details</h2>
+                <div id="product-container">
+                    <div class="product-row">
+                        <div class="form-group">
+                            <label for="product">Select Product</label>
+                            <select id="product" name="product">
+                                <option value="">-- Select a product --</option>
+                                <!-- Products will be loaded from JSON -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+                        </div>
+                        
+                        <!-- Update the Add to Cart button -->
+                        <button type="button" id="add-product" class="btn">
+                            <i class="fas fa-cart-plus"></i>
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="selected-items">
+                    <h3>Selected Items</h3>
+                    <div id="selected-items-container"></div>
+                    <div class="total-container">
+                        <h3>Total: <span id="total-amount">$0.00</span></h3>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2>Delivery Information</h2>
+                <div class="form-group">
+                    <label for="location">Delivery Location</label>
+                    <div class="location-input">
+                        <input type="text" id="location" name="location" required>
+                        <!-- Update the Get Current Location button -->
+                        <button type="button" id="get-location" class="btn">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Get Current Location
+                        </button>
+                    </div>
+                    <small class="form-note">Note: If the generated location is incorrect, please enter your address manually.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="landmark">Closest Landmark</label>
+                    <input type="text" id="landmark" name="landmark" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="delivery-time">Best Time to Deliver</label>
+                    <input type="text" id="delivery-time" name="delivery-time" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <div class="radio-group">
+                        <input type="radio" id="cash" name="payment" value="cash" checked>
+                        <label for="cash">Cash on Delivery</label>
+                        
+                        <input type="radio" id="mobile-money" name="payment" value="mobile-money">
+                        <label for="mobile-money">Mobile Money</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Update the Review Order button -->
+            <div class="form-actions">
+                <button type="button" id="review-order" class="btn btn-primary">
+                    <i class="fas fa-clipboard-check"></i>
+                    Review Order
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Order Summary Modal -->
+    <div id="order-summary-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Order Summary</h2>
+            <div id="summary-content"></div>
+            <!-- Update the modal action buttons -->
+            <div class="modal-actions">
+                <button id="edit-order" class="btn">
+                    <i class="fas fa-edit"></i>
+                    Edit Order
+                </button>
+                <button id="submit-order" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                    Submit Order
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Thank You Modal -->
+    <div id="thank-you-modal" class="modal">
+        <div class="modal-content">
+            <div class="success-checkmark">
+                <div class="check-icon"></div>
+            </div>
+            <h2>Thank You for Your Order!</h2>
+            <p>Your order has been received and is being processed.</p>
+            <p>Your order number is: <span id="order-number" class="order-number"></span></p>
+            <p>We will contact you shortly with more details.</p>
+            <!-- Update the Place New Order button -->
+            <div class="modal-actions">
+                <button id="new-order" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i>
+                    Place New Order
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
